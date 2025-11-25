@@ -5,14 +5,20 @@ from services.transaction_svc import TransactionService
 from schemas.transactions import Transaction
 from db.database import engine, get_db
 from models.transactions import Base
+from idempotency import IdempotencyMiddleware
+from idempotency.storage import MemoryStorage
 
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        
+
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    IdempotencyMiddleware,
+    MemoryStorage()
+    )
 
 @app.get("/")
 def health_check():
